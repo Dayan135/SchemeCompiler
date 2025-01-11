@@ -1613,22 +1613,16 @@ module Code_Generation (* : CODE_GENERATION *) = struct
       ("return", "L_code_ptr_return");
     ];;  
 
-(*type expr' =
-  | ScmConst' of sexpr
-  | ScmVarGet' of var'
-  | ScmIf' of expr' * expr' * expr'
-  | ScmSeq' of expr' list
-  | ScmOr' of expr' list
-  | ScmVarSet' of var' * expr'
-  | ScmVarDef' of var' * expr'
-  | ScmBox' of var'
-  | ScmBoxGet' of var'
-  | ScmBoxSet' of var' * expr'
-  | ScmLambda' of string list * lambda_kind * expr'
-  | ScmApplic' of expr' * expr' list * app_kind;;*)
   let collect_constants =
     let rec run = function
+    (* raise (X_not_yet_implemented "final project")this point *)
       | ScmConst' v -> [v]
+      (* | ScmConst' (ScmChar c) -> [ScmString (String.make 1 c)]
+      | ScmConst' (ScmString str) -> [ScmString str]
+      | ScmConst' (ScmSymbol sym) -> [ScmString sym]
+      | ScmConst' v -> [v]
+      | ScmConst' v -> [v]
+      | ScmConst' v -> [v] *)
       | ScmVarGet' (Var' (v,Free)) -> [ScmString v]
       | ScmVarGet' _ -> []
       | ScmIf' (e1,e2,e3) -> (run e1) @ (run e2) @ (run e3)
@@ -1674,40 +1668,57 @@ module Code_Generation (* : CODE_GENERATION *) = struct
 
   let search_constant_address =
     let rec run sexpr = function
-      | [] -> assert false
+      | [] -> print_string (Printf.sprintf "failed on sexpr: %s\n" (string_of_sexpr sexpr)); assert false
       | (sexpr', loc, _repr) :: sexprs when sexpr = sexpr' -> loc
       | _ :: sexprs -> run sexpr sexprs
     in run;;
 
-  let const_repr sexpr loc table = match sexpr with
-    | ScmVoid -> ([RTTI "T_void"], 1)
-    | ScmNil -> ([RTTI "T_nil"], 1)
-    | ScmBoolean false ->
+  let const_repr sexpr loc table = 
+    let str1 = string_of_sexpr sexpr in
+    match sexpr with
+    | ScmVoid -> 
+      (* print_string (Printf.sprintf "Void!! %s\n" str1) ;  *)
+      ([RTTI "T_void"], 1)
+    | ScmNil -> 
+      (* print_string (Printf.sprintf "Nil!! %s\n" str1) ; *)
+      ([RTTI "T_nil"], 1)
+    | ScmBoolean false -> 
+      (* print_string (Printf.sprintf "BFalse!! %s\n" str1) ; *)
       ([RTTI "T_boolean_false"], 1)
-    | ScmBoolean true ->
+    | ScmBoolean true -> 
+      (* print_string (Printf.sprintf "BTrue!! %s\n" str1) ; *)
       ([RTTI "T_boolean_true"], 1)
-    | ScmChar ch ->
+    | ScmChar ch -> 
+      (* print_string (Printf.sprintf "cahr!! %s\n" str1) ; *)
       ([RTTI "T_char"; Byte (int_of_char ch)], 2)
-    | ScmString str ->
+    | ScmString str -> 
+      (* print_string (Printf.sprintf "str!! %s\n" str1) ; *)
       ([RTTI "T_string"; Quad (String.length str); ASCII str], 1 + word_size + String.length str)
       (* raise (X_not_yet_implemented "final project")this point *)
-    | ScmSymbol sym ->
+    | ScmSymbol sym -> 
+      (*debug print_string (Printf.sprintf "sym!! %s\n" str1) ; *)
       let addr = search_constant_address (ScmString sym) table in
       ([RTTI "T_interned_symbol"; ConstPtr addr], 1 + word_size)
-    | ScmNumber (ScmInteger n) ->
+    | ScmNumber (ScmInteger n) -> 
+      (* print_string (Printf.sprintf "numInt!! %s\n" str1) ; *)
       ([RTTI "T_integer"; Quad n], 1 + word_size)
-    | ScmNumber (ScmFraction (numerator, denominator)) ->
+    | ScmNumber (ScmFraction (numerator, denominator)) -> 
+      (* print_string (Printf.sprintf "numFrac!! %s\n" str1) ; *)
       ([RTTI "T_fraction"; Quad numerator; Quad denominator], 1 + 2 * word_size)
       (* raise (X_not_yet_implemented "final project") *)
-    | ScmNumber (ScmReal x) ->
+    | ScmNumber (ScmReal x) -> 
+      (* print_string (Printf.sprintf "numReal!! %s\n" str1) ; *)
       ([RTTI "T_real"; QuadFloat x], 1 + word_size)
-    | ScmVector s ->
+    | ScmVector s -> 
+      (* print_string (Printf.sprintf "vec!! %s\n" str1) ; *)
       let addrs = List.map (fun el -> ConstPtr (search_constant_address el table)) s in
       ((RTTI "T_vector"):: (Quad (List.length s)) :: addrs , 1 + word_size + word_size * (List.length s))
       (* (RTTI "T_vector") :: (Quad length) :: addrs
       raise (X_not_yet_implemented "final project") *)
     | ScmPair (car, cdr) ->
+      (* print_string (Printf.sprintf "ppair!! %s\n" str1) ; *)
       ([RTTI "T_pair"; ConstPtr (search_constant_address car table); ConstPtr (search_constant_address cdr table)], 1 + 2*word_size)
+      (* raise (X_not_yet_implemented "final project")this point *)
 
   let make_constants_table =
     let rec run table loc = function
@@ -1791,7 +1802,7 @@ module Code_Generation (* : CODE_GENERATION *) = struct
       label_start_of_constants_table (run table);;
 
   let collect_free_vars = 
-    (* this point *)
+    (* raise (X_not_yet_implemented "final project")this point *)
     let rec run = function
       | ScmConst' _ -> []
       | ScmVarGet' (Var' (v,Free)) -> [v]
@@ -1917,7 +1928,9 @@ module Code_Generation (* : CODE_GENERATION *) = struct
 
   let code_gen exprs' =
     let consts = make_constants_table exprs' in
+    (*debug print_string (Printf.sprintf "constants table:\n - %s" (String.concat "\n - "(List.map (fun (sex,_,_) -> string_of_sexpr sex) consts))) ; *)
     let free_vars = make_free_vars_table exprs' in
+    (*debug print_string "WOW!\n" ; *)
     let rec run params env = function
       | ScmConst' sexpr ->
         let addr = search_constant_address sexpr consts in
@@ -1957,13 +1970,9 @@ module Code_Generation (* : CODE_GENERATION *) = struct
       | ScmOr' exprs' ->
         let exprsCode = List.map (run params env) exprs' in
         let label_end = make_or_end () in
-        (* this point *)
-        List.fold_left 
-          (fun acc exprCode -> acc ^ exprCode 
-                        ^ "cmp rax, sob_boolean_flase"
-                        ^ Printf.sprintf "jne %s\n" label_end) 
-          "" 
-          exprsCode
+        let exprsCode = List.map (fun x -> x ^ "\ncmp rax, sob_boolean_flase" ^ (Printf.sprintf "\njne %s" label_end)) exprsCode in 
+        (String.concat "\n" exprsCode) ^ Printf.sprintf "\n%s:" label_end
+        
         (* raise (X_not_yet_implemented "final project") *)
       | ScmVarSet' (Var' (v, Free), expr') ->
         let label = search_free_var_table v free_vars in
@@ -1972,8 +1981,14 @@ module Code_Generation (* : CODE_GENERATION *) = struct
         ^ "\tmov rax, sob_void\n"
         (* raise (X_not_yet_implemented "final project") *)
       | ScmVarSet' (Var' (v, Param minor), ScmBox' _) ->
+        "\tmov rdi, 8*1\n"
+        ^ "\tcall malloc\n"
+        ^ Printf.sprintf "\tmov rbx, PARAM(%d)\t; param %s\n" minor v
+        ^ "\tmov qword [rax], rbx\n"
+        ^ (Printf.sprintf "\tmov PARAM(%d), rax\t; param %s\n" minor v)
+        ^ "\tmov rax, sob_void\n"
         
-        raise (X_not_yet_implemented "final project")
+        (* raise (X_not_yet_implemented "final project") *)
       | ScmVarSet' (Var' (v, Param minor), expr') ->
         (run params env expr')
         ^ (Printf.sprintf "\tmov PARAM(%d), rax\t; param %s\n" minor v)
@@ -1997,9 +2012,9 @@ module Code_Generation (* : CODE_GENERATION *) = struct
         ^ "\tmov rax, sob_void\n"
         (* raise (X_not_yet_implemented "Support local definitions (param)") *)
       | ScmVarDef' (Var' (v, Bound (major, minor)), expr') ->
-        "\tmov rax, ENV\n"
-        ^ (Printf.sprintf "\tmov rbx, qword [rax + 8 * %d]\n" major)
-        ^ (run params env expr')
+        (run params env expr')
+        ^ "\tmov rcx, ENV\n"
+        ^ (Printf.sprintf "\tmov rbx, qword [rcx + 8 * %d]\n" major)
         ^ (Printf.sprintf "\tmov qword [rbx + 8 * %d], rax\t; bound var %s\n" minor v)
         ^ "\tmov rax, sob_void\n"
         (* raise (X_not_yet_implemented "Support local definitions (bound)") *)
@@ -2009,8 +2024,9 @@ module Code_Generation (* : CODE_GENERATION *) = struct
         ^ "\tmov rax, qword [rax]\n"
       | ScmBoxSet' (var', expr') ->
         (run params env (ScmVarGet' var'))
-        ^ "mov rbx, rax"
+        ^ "push rax"
         ^ (run params env expr')
+        ^ "pop rbx"
         ^ "mov qword [rbx], rax"
         ^ "mov rax, sob_void"
         (* raise (X_not_yet_implemented "final project") *)
@@ -2087,7 +2103,60 @@ module Code_Generation (* : CODE_GENERATION *) = struct
         and label_loop = make_lambda_opt_loop ()
         and label_loop_exit = make_lambda_opt_loop_exit ()
         in
-        raise (X_not_yet_implemented "final project")
+        "\tmov rdi, (1 + 8 + 8)\t; sob closure\n"
+        ^ "\tcall malloc\n"
+        ^ "\tpush rax\n"
+        ^ (Printf.sprintf "\tmov rdi, 8 * %d\t; new rib\n" params)
+        ^ "\tcall malloc\n"
+        ^ "\tpush rax\n"
+        ^ (Printf.sprintf "\tmov rdi, 8 * %d\t; extended env\n" (env + 1))
+        ^ "\tcall malloc\n"
+        ^ "\tmov rdi, ENV\n"
+        ^ "\tmov rsi, 0\n"
+        ^ "\tmov rdx, 1\n"
+        ^ (Printf.sprintf "%s:\t; ext_env[i + 1] <-- env[i]\n"
+              label_loop_env)
+        ^ (Printf.sprintf "\tcmp rsi, %d\n" env)
+        ^ (Printf.sprintf "\tje %s\n" label_loop_env_end)
+        ^ "\tmov rcx, qword [rdi + 8 * rsi]\n"
+        ^ "\tmov qword [rax + 8 * rdx], rcx\n"
+        ^ "\tinc rsi\n"
+        ^ "\tinc rdx\n"
+        ^ (Printf.sprintf "\tjmp %s\n" label_loop_env)
+        ^ (Printf.sprintf "%s:\n" label_loop_env_end)
+        ^ "\tpop rbx\n"
+        ^ "\tmov rsi, 0\n"
+        ^ (Printf.sprintf "%s:\t; copy params\n" label_loop_params)
+        ^ (Printf.sprintf "\tcmp rsi, %d\n" params)
+        ^ (Printf.sprintf "\tje %s\n" label_loop_params_end)
+        ^ "\tmov rdx, qword [rbp + 8 * rsi + 8 * 4]\n"
+        ^ "\tmov qword [rbx + 8 * rsi], rdx\n"
+        ^ "\tinc rsi\n"
+        ^ (Printf.sprintf "\tjmp %s\n" label_loop_params)
+        ^ (Printf.sprintf "%s:\n" label_loop_params_end)
+        ^ "\tmov qword [rax], rbx\t; ext_env[0] <-- new_rib \n"
+        ^ "\tmov rbx, rax\n"
+        ^ "\tpop rax\n"
+        ^ "\tmov byte [rax], T_closure\n"
+        ^ "\tmov SOB_CLOSURE_ENV(rax), rbx\n"
+        ^ (Printf.sprintf "\tmov SOB_CLOSURE_CODE(rax), %s\n" label_code)
+        ^ (Printf.sprintf "\tjmp %s\n" label_end)
+        ^ (Printf.sprintf "%s:\t; lambda-simple body\n" label_code)
+        ^ (Printf.sprintf "\tcmp qword [rsp + 8 * 2], %d\n"
+              (List.length params'))
+        ^ (Printf.sprintf "\tje %s\n" label_arity_more(*label_arity_ok*))
+        ^ "\tpush qword [rsp + 8 * 2]\n"
+        ^ (Printf.sprintf "\tpush %d\n" (List.length params'))
+        ^ "\tjmp L_error_incorrect_arity_simple\n"
+        ^ (Printf.sprintf "%s:\n" label_arity_more(*label_arity_ok*))
+        ^ "\tenter 0, 0\n"
+        ^ (run (List.length params') (env + 1) body)
+        ^ "\tleave\n"
+        ^ (Printf.sprintf "\tret AND_KILL_FRAME(%d)\n" (List.length params'))
+        ^ (Printf.sprintf "%s:\t; new closure is in rax\n" label_end)
+
+        (* raise (X_not_yet_implemented "final project") *)
+        
       | ScmApplic' (proc, args, Non_Tail_Call) -> 
         let args_code =
           String.concat ""
@@ -2107,7 +2176,46 @@ module Code_Generation (* : CODE_GENERATION *) = struct
         ^ "\tpush SOB_CLOSURE_ENV(rax)\n"
         ^ "\tcall SOB_CLOSURE_CODE(rax)\n"
       | ScmApplic' (proc, args, Tail_Call) -> 
-        raise (X_not_yet_implemented "final project")
+        let args_code =
+          String.concat ""
+            (List.map
+                (fun arg ->
+                  let arg_code = run params env arg in
+                  arg_code
+                  ^ "\tpush rax\n")
+                (List.rev args)) in
+        let proc_code = run params env proc in
+        let recycle_label = make_tc_applic_recycle_frame_loop () in
+        let end_recycle_label = make_tc_applic_recycle_frame_done () in
+        "\t; preparing a non-tail-call\n"
+        ^ args_code
+        ^ (Printf.sprintf "\tpush %d\t; arg count\n" (List.length args))
+        ^ proc_code
+        ^ "\tcmp byte [rax], T_closure\n"
+        ^ "\tjne L_error_non_closure\n"
+        ^ "\tpush SOB_CLOSURE_ENV(rax)\n"
+
+        ^ "\tmov rdi, [rbp + 8 * 3]\n"
+        ^ "\tadd rdi, 3\t ;rdi indicates offset (in bytes, positive) from rbp to first old arg pushed\n"
+        ^ "\tmov rdx, rdi\t ;rdx will later be the size of qwords to discard from stack\n"
+        ^ "\tmov rsi, 1\t ;rsi indicates offset (in bytes, negetive) from rbp to first new arg pushed\n"
+        ^ (Printf.sprintf "\trcx, %d\n" (List.length args))
+        ^ "\tadd rcx, 2\t ;rcx indicates number of qwords to be copied\n"
+        ^ "\tmov r8, [rbp + 8]\t ; r8 is the return address\n"
+        ^ (Printf.sprintf "%s:\n" recycle_label)
+        ^ "\tmov rbx, [rbp - 8 * rsi]\n"
+        ^ "\tmov [rbp + 8 * rdi], rbx\n"
+        ^ "\tinc rsi\n"
+        ^ "\tdec rdi\n"
+        ^ "\tcmp rsi, rcx\n"
+        ^ (Printf.sprintf "\tjle %s\n" recycle_label)
+        ^ "\t;once args, num of args and env was copied, put the ret address and fold stack\n"
+        ^ "\tmov [rbp + 8 * rdi], r8\t ; old ret address\n"
+        ^ "\tshl rdx, 3\t ;rdx is the size in bytes to discard\n"
+        ^ "\tadd rsp, rdx\n"
+        ^ "\tjmp SOB_CLOSURE_CODE(rax)\n"
+
+        (* raise (X_not_yet_implemented "final project") *)
     and runs params env exprs' =
       List.map (fun expr' -> run params env expr') exprs' in
     let codes = runs 0 0 exprs' in

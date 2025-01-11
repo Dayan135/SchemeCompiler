@@ -1,0 +1,10 @@
+type sexpr =
+  | ScmVoid
+  | ScmNil
+  | ScmBoolean of bool
+  | ScmChar of char
+  | ScmString of string
+  | ScmSymbol of string
+  | ScmNumber of scm_number
+  | ScmVector of (sexpr list)
+  | ScmPair of (sexpr * sexpr);;
