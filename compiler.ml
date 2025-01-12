@@ -2237,8 +2237,8 @@ module Code_Generation (* : CODE_GENERATION *) = struct
     code;;
 
   let compile_scheme_string file_out user =
-    let init = file_to_string "init.scm" in
-    let source_code = init ^ "\n" ^ user in
+    (* let init = file_to_string "init.scm" in *)
+    let source_code = (*init ^ "\n" ^*) user in
     let sexprs = (PC.star Reader.nt_sexpr source_code 0).found in
     let exprs = List.map Tag_Parser.tag_parse sexprs in
     let exprs' = List.map Semantic_Analysis.semantics exprs in
@@ -2250,8 +2250,8 @@ module Code_Generation (* : CODE_GENERATION *) = struct
     compile_scheme_string file_out (file_to_string file_in);;
 
   let compile_and_run_scheme_string file_out_base user =
-    let init = file_to_string "init.scm" in
-    let source_code = init ^ "\n" ^ user in
+    (* let init = (file_to_string "init.scm") in *)
+    let source_code = (*init ^ "\n" ^ *)user in
     let sexprs = (PC.star Reader.nt_sexpr source_code 0).found in
     let exprs = List.map Tag_Parser.tag_parse sexprs in
     let exprs' = List.map Semantic_Analysis.semantics exprs in
