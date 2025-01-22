@@ -465,16 +465,16 @@ L_constants:
 	dq 6
 	db 0x72, 0x65, 0x74, 0x75, 0x72, 0x6E
 	; L_constants + 1501:
-	db T_string	; "+"
+	db T_string	; "-"
 	dq 1
-	db 0x2B
+	db 0x2D
 	; L_constants + 1511:
-	db T_integer	; 1
-	dq 1
-	; L_constants + 1520:
 	db T_integer	; 2
 	dq 2
-free_var_0:	; location of +
+	; L_constants + 1520:
+	db T_integer	; 1
+	dq 1
+free_var_0:	; location of -
 	dq .undefined_object
 .undefined_object:
 	db T_undefined
@@ -497,7 +497,7 @@ main:
 	mov rax, L_constants + 1511
 	push rax
 	push 2	; arg count
-	mov rax, qword [free_var_0]	; free var +
+	mov rax, qword [free_var_0]	; free var -
 	cmp byte [rax], T_undefined
 	je L_error_fvar_undefined
 	cmp byte [rax], T_closure
